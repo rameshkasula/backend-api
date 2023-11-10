@@ -1,6 +1,11 @@
 // generating sample data
 
 import { faker } from "@faker-js/faker";
+import {
+  randomBakeryItem,
+  randomBranchId,
+  randomOrderStatus,
+} from "./constants.js";
 
 const generateLastUpdateTime = () => {
   const startDate = faker.date.past(6);
@@ -11,15 +16,10 @@ const generateLastUpdateTime = () => {
 const generateOrder = () => {
   const order = {
     order_id: faker.random.uuid(),
-    item_type: faker.random.arrayElement(["Cake", "Cookies", "Muffins"]),
-    order_state: faker.random.arrayElement([
-      "Created",
-      "Shipped",
-      "Delivered",
-      "Canceled",
-    ]),
+    item_type: randomBakeryItem(),
+    order_state: randomOrderStatus(),
     last_update_time: generateLastUpdateTime(),
-    branch_id: faker.random.number({ min: 1, max: 1000 }),
+    branch_id: randomBranchId(),
     customer_id: faker.random.number({ min: 1, max: 10000 }),
   };
 

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { generateBranches } from "./helpers/sampleData.js";
 import { connectDB } from "./helpers/db.js";
 import appRouter from "./routes/index.js";
+import { randomBranchId } from "./helpers/constants.js";
 
 dotenv.config();
 
@@ -14,21 +15,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Move this function to a separate file if it grows
-function freqNumbers(nums) {
-  let freq = {};
-
-  for (const num of nums) {
-    if (freq[num]) {
-      freq[num.branch_id]++;
-    } else {
-      freq[num.branch_id] = 1;
-    }
-  }
-  return freq;
-}
-
-// Move this function to a separate file if it grows
+// function to insert data
 async function bulkWriteBranches(branches) {
   try {
     console.log("Inserting data", branches.length);
@@ -47,7 +34,9 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1", appRouter);
 
-// Move this function to a separate file if it grows
+const result = randomBranchId();
+console.log(result, "result");
+// server
 async function startServer() {
   try {
     await connectDB();

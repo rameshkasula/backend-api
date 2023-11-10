@@ -6,6 +6,7 @@ import branchModel from "../models/branchModel.js";
 export const getBranches = async (req, res) => {
   try {
     const branches = await branchModel.find({});
+    console.log("length", branches.length);
     return res
       .status(HttpStatus.ALREADY_EXISTS.code)
       .json(

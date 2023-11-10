@@ -1,19 +1,20 @@
 // orders model
 
 import mongoose from "mongoose";
+import { bakeryItems, orderStatus } from "../helpers/constants.js";
 
 const orderSchema = new mongoose.Schema(
   {
-    order_id: { type: String, required: true },
+    order_id: { type: Number, required: true },
     item_type: {
       type: String,
       required: true,
-      enum: ["Cake", "Cookies", "Muffins"],
+      enum: bakeryItems,
     },
     order_state: {
       type: String,
       required: true,
-      enum: ["Created", "Shipped", "Delivered", "Canceled"],
+      enum: orderStatus,
     },
     last_update_time: { type: Date, default: Date.now },
     branch_id: { type: Number, required: true },
