@@ -8,19 +8,19 @@ import {
 } from "./constants.js";
 
 const generateLastUpdateTime = () => {
-  const startDate = faker.date.past(6);
-  const endDate = faker.date.recent();
-
-  return faker.date.between(startDate, endDate);
+  const startDate = faker.date.past({ days: 100 });
+  const endDate = faker.date.recent({ days: 100 });
+  const lastUpdateTime = faker.date.recent({ days: 100 });
+  return lastUpdateTime;
 };
 const generateOrder = () => {
   const order = {
-    order_id: faker.random.uuid(),
+    order_id: faker.number.int({ min: 1, max: 100000 }),
     item_type: randomBakeryItem(),
     order_state: randomOrderStatus(),
     last_update_time: generateLastUpdateTime(),
-    branch_id: randomBranchId(),
-    customer_id: faker.random.number({ min: 1, max: 10000 }),
+    branch_id: faker.number.int({ min: 1, max: 1000 }),
+    customer_id: faker.number.int({ min: 1, max: 5000 }),
   };
 
   return order;
@@ -30,7 +30,9 @@ export const generateOrders = (count) => {
   const orders = [];
 
   for (let i = 0; i < count; i++) {
-    orders.push(generateOrder());
+    const order = generateOrder();
+    console.log("oooooooooooooo", order);
+    orders.push(order);
   }
 
   return orders;

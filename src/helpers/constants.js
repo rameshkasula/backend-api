@@ -1,4 +1,19 @@
-export const bakeryItems = ["Cake", "Cookies", "Muffins"];
+export const bakeryItemsWithPrices = [
+  {
+    name: "Cake",
+    price: 500,
+  },
+  {
+    name: "Cookies",
+    price: 50,
+  },
+  {
+    name: "Muffins",
+    price: 100,
+  },
+];
+
+export const bakeryItems = bakeryItemsWithPrices.map((item) => item.name);
 
 export const orderStatus = ["Created", "Shipped", "Delivered", "Canceled"];
 
