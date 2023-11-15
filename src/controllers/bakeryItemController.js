@@ -44,8 +44,6 @@ export const createBakeryItem = async (req, res) => {
     console.log("req.body", req.body);
     const item = await bakeryItemModel.create(req.body);
 
-    console.log("item", item);
-
     return res
       .status(HttpStatus.OK.code)
       .json(
