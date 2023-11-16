@@ -2,21 +2,16 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import dotenv from "dotenv";
-import { generateBranches, generateOrders } from "./helpers/sampleData.js";
+// import { generateBranches, generateOrders } from "./helpers/sampleData.js";
 import { connectDB } from "./helpers/db.js";
 import appRouter from "./routes/index.js";
 import { randomBranchId } from "./helpers/constants.js";
-import orderModel from "./models/orderModel.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const corsOptions = {
-  origin: "http://localhost:5500",
-  credentials: true, //access-control-allow-credentials:true
-  optionSuccessStatus: 200,
-};
+
 app.use(cors());
 app.use(express.json());
 
