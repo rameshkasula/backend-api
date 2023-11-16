@@ -12,14 +12,12 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+const corsOptions = {
+  origin: "http://localhost:5500",
+  credentials: true, //access-control-allow-credentials:true
+  optionSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // function to insert data
