@@ -15,7 +15,7 @@ export const getBranches = async (req, res) => {
     const branches = await branchModel.find().skip(skip).limit(pageSize);
     console.log("length", branches.length);
     return res
-      .status(HttpStatus.ALREADY_EXISTS.code)
+      .status(HttpStatus.OK.code)
       .json(
         new Response(
           HttpStatus.OK.code,
