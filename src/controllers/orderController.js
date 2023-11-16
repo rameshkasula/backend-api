@@ -1,6 +1,7 @@
 // orders controller
 
 import { HttpStatus, Response } from "../helpers/Response.js";
+import { orderStatus } from "../helpers/constants.js";
 import bakeryItemModel from "../models/bakeryItemModel.js";
 import orderModel from "../models/orderModel.js";
 
@@ -257,6 +258,72 @@ export const getTopBranches = async (req, res) => {
           HttpStatus.INTERNAL_SERVER_ERROR.status,
           HttpStatus.INTERNAL_SERVER_ERROR.message,
           error
+        )
+      );
+  }
+};
+
+export const getAllItemsOrderCount = async (req, res) => {
+  try {
+    console.log("req.query", req.query);
+    const startTime = new Date(req.query.startTime);
+    const endTime = new Date(req.query.endTime);
+    const orderStatusFilter = JSON.parse(req.query.orderStatus) || orderStatus;
+
+    if (isNaN(startTime) || isNaN(endTime)) {
+      return res.status(HttpStatus.BAD_REQUEST.code).json({
+        message: "Invalid date format for startTime or endTime.",
+      });
+    }
+
+    await orderModel.createIndexes({ last_update_time: 1 });
+
+    const pipeline = [
+      {
+        $match: {
+          last_update_time: {
+            $gte: startTime,
+            $lte: endTime,
+          },
+          order_status: { $in: orderStatusFilter },
+        },
+      },
+      {
+        $group: {
+          _id: { $toLower: "$item_name" }, // Convert to lowercase for case-insensitive grouping
+          orderCount: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          itemName: "$_id",
+          orderCount: 1,
+        },
+      },
+    ];
+
+    const result = await orderModel.aggregate(pipeline).exec();
+
+    return res
+      .status(HttpStatus.OK.code)
+      .json(
+        new Response(
+          HttpStatus.OK.code,
+          HttpStatus.OK.status,
+          HttpStatus.OK.message,
+          result
+        )
+      );
+  } catch (error) {
+    return res
+      .status(HttpStatus.INTERNAL_SERVER_ERROR.code)
+      .json(
+        new Response(
+          HttpStatus.INTERNAL_SERVER_ERROR.code,
+          HttpStatus.INTERNAL_SERVER_ERROR.status,
+          HttpStatus.INTERNAL_SERVER_ERROR.message,
+          error?.message
         )
       );
   }

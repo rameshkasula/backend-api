@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getAllItemsOrderCount,
   getOrderCountsAndSalesByItems,
   getOrders,
   getTopBranches,
@@ -12,5 +13,7 @@ orderRouter.get("/", getOrders);
 orderRouter.get("/itemwise", getOrderCountsAndSalesByItems);
 
 orderRouter.get("/top", getTopBranches);
+
+orderRouter.get("/sales", getAllItemsOrderCount);
 
 export default orderRouter;
