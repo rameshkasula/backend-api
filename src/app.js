@@ -41,7 +41,7 @@ async function bulkWriteOrders(orders) {
 
 // routes
 app.get("/", (req, res) => {
-  res.send("Hello World! there");
+  res.send("Hello World!");
 });
 
 app.use("/api/v1", appRouter);
