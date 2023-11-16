@@ -1,7 +1,6 @@
 // orders controller
 
 import { HttpStatus, Response } from "../helpers/Response.js";
-import { bakeryItems, bakeryItemsWithPrices } from "../helpers/constants.js";
 import bakeryItemModel from "../models/bakeryItemModel.js";
 import orderModel from "../models/orderModel.js";
 
@@ -48,55 +47,116 @@ export const getOrders = async (req, res) => {
 
 export const getOrderCountsAndSalesByItems = async (req, res) => {
   try {
-    const bakeryItems = [
-      { name: "Cake", price: 500 },
-      { name: "Cookies", price: 50 },
-      { name: "Muffins", price: 100 },
-    ];
+    const startTime = new Date(req.query.startTime);
+    const endTime = new Date(req.query.endTime);
 
-    const { startTime, endTime } = req.query;
-    await orderModel.createIndexes({ item: 1 });
-    const result = await orderModel
-      .aggregate([
-        {
-          $match: {
-            item_type: { $in: bakeryItems.map((item) => item.name) },
-            last_update_time: {
-              $gte: new Date(startTime),
-              $lte: new Date(endTime),
+    if (isNaN(startTime) || isNaN(endTime)) {
+      return res.status(HttpStatus.BAD_REQUEST.code).json({
+        message: "Invalid date format for startTime or endTime.",
+      });
+    }
+
+    const dateDifference = (startTime, endTime) => {
+      const diffMilliseconds = Math.abs(
+        new Date(endTime) - new Date(startTime)
+      );
+      const oneDayMilliseconds = 24 * 60 * 60 * 1000;
+      const oneMonthMilliseconds = 30 * oneDayMilliseconds;
+      const oneYearMilliseconds = 365 * oneDayMilliseconds;
+
+      if (diffMilliseconds > oneYearMilliseconds) {
+        return "yearly";
+      } else if (diffMilliseconds > oneMonthMilliseconds) {
+        return "monthly";
+      } else {
+        return "daily";
+      }
+    };
+
+    const timeRange = dateDifference(startTime, endTime);
+
+    let pipeline;
+
+    switch (timeRange) {
+      case "yearly":
+        pipeline = [
+          {
+            $match: {
+              last_update_time: {
+                $gte: new Date(startTime),
+                $lte: new Date(endTime),
+              },
             },
           },
-        },
-        {
-          $group: {
-            _id: "$item_type",
-            orderCount: { $sum: 1 },
-            salesAmount: { $sum: "$item_type.price" },
+          {
+            $group: {
+              _id: { $year: "$last_update_time" },
+              totalOrders: { $sum: 1 },
+              totalSales: { $sum: "$price" },
+            },
           },
-        },
-        {
-          $project: {
-            _id: 0,
-            name: "$_id",
-            orderCount: 1,
-            salesAmount: 1,
+          {
+            $sort: { _id: 1 },
           },
-        },
-      ])
-      .exec();
+        ];
+        break;
+      case "monthly":
+        pipeline = [
+          {
+            $match: {
+              last_update_time: {
+                $gte: new Date(startTime),
+                $lte: new Date(endTime),
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                year: { $year: "$last_update_time" },
+                month: { $month: "$last_update_time" },
+              },
+              totalOrders: { $sum: 1 },
+              totalSales: { $sum: "$price" },
+            },
+          },
+          {
+            $sort: { "_id.year": 1, "_id.month": 1 },
+          },
+        ];
+        break;
+      case "daily":
+      default:
+        pipeline = [
+          {
+            $match: {
+              last_update_time: {
+                $gte: new Date(startTime),
+                $lte: new Date(endTime),
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                year: { $year: "$last_update_time" },
+                month: { $month: "$last_update_time" },
+                day: { $dayOfMonth: "$last_update_time" },
+              },
+              totalOrders: { $sum: 1 },
+              totalSales: { $sum: "$price" },
+            },
+          },
+          {
+            $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 },
+          },
+        ];
+        break;
+    }
 
-    const mergedResult = bakeryItems.map((item) => {
-      const matchingResult = result.find(
-        (resultItem) => resultItem.name === item.name
-      );
+    const result = await orderModel.aggregate(pipeline);
 
-      return matchingResult
-        ? {
-            ...matchingResult,
-            salesAmount: item.price * matchingResult.orderCount,
-          }
-        : { ...item, orderCount: 0, salesAmount: 0 };
-    });
+    // Result will be grouped by year, month, and day for the same month
 
     return res
       .status(HttpStatus.OK.code)
@@ -105,11 +165,20 @@ export const getOrderCountsAndSalesByItems = async (req, res) => {
           HttpStatus.OK.code,
           HttpStatus.OK.status,
           HttpStatus.OK.message,
-          mergedResult
+          result
         )
       );
   } catch (error) {
-    res.status(404).json({ message: error.message });
+    return res
+      .status(HttpStatus.INTERNAL_SERVER_ERROR.code)
+      .json(
+        new Response(
+          HttpStatus.INTERNAL_SERVER_ERROR.code,
+          HttpStatus.INTERNAL_SERVER_ERROR.status,
+          HttpStatus.INTERNAL_SERVER_ERROR.message,
+          error
+        )
+      );
   }
 };
 
@@ -124,7 +193,6 @@ export const getTopBranches = async (req, res) => {
       });
     }
 
-    // Create an index on the last_update_time field in both collections
     await orderModel.createIndexes({ last_update_time: 1 });
     await bakeryItemModel.createIndexes({});
 
@@ -133,41 +201,25 @@ export const getTopBranches = async (req, res) => {
         {
           $match: {
             last_update_time: { $gte: startTime, $lt: endTime },
-            //      item_type: { $in: req.query.item_type || [] },
           },
         },
         {
           $group: {
             _id: "$branch_id",
             totalOrders: { $sum: 1 },
-            totalPrice: { $sum: { $multiply: ["$orderCount", 1] } }, // Assuming 1 as the default price if not in bakeryitems
+            totalAmount: { $sum: "$price" }, // Assuming there's a "price" field in your order documents
           },
+        },
+        {
+          $sort: { totalOrders: -1 },
+        },
+        {
+          $limit: 3,
         },
         {
           $lookup: {
-            from: "bakeryitems",
-            localField: "name",
-            foreignField: "item_type",
-            as: "bakeryItem",
-          },
-        },
-        {
-          $unwind: "$bakeryItem",
-        },
-        {
-          $group: {
-            _id: "$_id",
-            totalOrders: { $first: "$totalOrders" },
-            totalSalesAmount: {
-              $sum: { $multiply: ["$totalPrice", "$bakeryItem.price"] },
-            },
-            branchDetails: { $first: "$branch_id" }, // Assuming branch_id in orderModel
-          },
-        },
-        {
-          $lookup: {
-            from: "branch", // Assuming the branch collection name is "branch"
-            localField: "branchDetails",
+            from: "branches",
+            localField: "_id",
             foreignField: "_id",
             as: "branchDetails",
           },
@@ -176,28 +228,36 @@ export const getTopBranches = async (req, res) => {
           $unwind: "$branchDetails",
         },
         {
-          $sort: { totalOrders: -1, totalSalesAmount: -1 },
-        },
-        {
-          $limit: 3,
-        },
-        {
           $project: {
             _id: 0,
             branchDetails: 1,
             totalOrders: 1,
-            totalSalesAmount: 1,
+            totalAmount: 1,
           },
         },
       ])
       .exec();
 
-    return res.status(HttpStatus.OK.code).json({
-      message: HttpStatus.OK.message,
-      topBranches: result,
-    });
+    return res
+      .status(HttpStatus.OK.code)
+      .json(
+        new Response(
+          HttpStatus.OK.code,
+          HttpStatus.OK.status,
+          HttpStatus.OK.message,
+          result
+        )
+      );
   } catch (error) {
-    console.error("Error in getTopBranches:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    return res
+      .status(HttpStatus.INTERNAL_SERVER_ERROR.code)
+      .json(
+        new Response(
+          HttpStatus.INTERNAL_SERVER_ERROR.code,
+          HttpStatus.INTERNAL_SERVER_ERROR.status,
+          HttpStatus.INTERNAL_SERVER_ERROR.message,
+          error
+        )
+      );
   }
 };
