@@ -1,5 +1,5 @@
 import express from "express";
-import cors from "cors";
+import Cors from "cors";
 import http from "http";
 import dotenv from "dotenv";
 // import { generateBranches, generateOrders } from "./helpers/sampleData.js";
@@ -12,14 +12,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(
-  cors({
-    allowedHeaders: ["Content-Type", "Authorization"],
-    origin: ["http://localhost:5500"],
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
+app.use(Cors());
 app.use(express.json());
 
 // function to insert data
