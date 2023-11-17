@@ -24,6 +24,11 @@ export const getOrders = async (req, res) => {
 
     // Create an index on the last_update_time field
     await orderModel.createIndexes({ last_update_time: 1 });
+    const totalRecords = await orderModel.countDocuments({
+      last_update_time: { $gte: startTime, $lt: endTime },
+    });
+
+    const totalPages = Math.ceil(totalRecords / pageSize);
 
     const orders = await orderModel
       .find({
@@ -32,17 +37,34 @@ export const getOrders = async (req, res) => {
       .skip(skip)
       .limit(pageSize)
       .lean();
-
-    // Log the number of orders
-    console.log("Number of orders:", orders.length);
-
-    return res.status(HttpStatus.OK.code).json({
-      message: HttpStatus.OK.message,
+    const results = {
+      totalPages,
+      page,
+      pageSize,
       orders,
-    });
+    };
+    return res
+      .status(HttpStatus.OK.code)
+      .json(
+        new Response(
+          HttpStatus.OK.code,
+          HttpStatus.OK.status,
+          HttpStatus.OK.message,
+          results
+        )
+      );
   } catch (error) {
     console.error("Error in getOrders:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    return res
+      .status(HttpStatus.INTERNAL_SERVER_ERROR.code)
+      .json(
+        new Response(
+          HttpStatus.INTERNAL_SERVER_ERROR.code,
+          HttpStatus.INTERNAL_SERVER_ERROR.status,
+          HttpStatus.INTERNAL_SERVER_ERROR.message,
+          error
+        )
+      );
   }
 };
 
